@@ -10,6 +10,7 @@ build/
 *.so
 *.pyd
 *.dll
+*.exe
 
 # Wasm (generated, copied to frontend/wasm/)
 *.wasm
