@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# C++ Build
+build/
+*.o
+*.so
+*.pyd
+*.dll
+
+# Wasm (generated, copied to frontend/wasm/)
+*.wasm
+*.wasm.map
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# SQLite
+*.db
