@@ -11,6 +11,7 @@ set(OT_SOURCES
     src/document.cpp
     src/transform.cpp
     src/composer.cpp
+    src/serialization.cpp
 )
 
 add_library(ot_core STATIC ${OT_SOURCES})

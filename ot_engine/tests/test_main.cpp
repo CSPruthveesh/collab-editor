@@ -69,12 +69,27 @@ void test_compose() {
     std::cout << "[PASS] test_compose\n";
 }
 
+#include "ot/serialization.hpp"
+
+void test_serialization() {
+    ot::Operation op;
+    op.retain(6).insert("Beautiful ").del(5);
+
+    std::string json = ot::to_json(op);
+    assert(json == "[{\"r\":6},{\"i\":\"Beautiful \"},{\"d\":5}]");
+
+    ot::Operation parsed = ot::from_json(json);
+    assert(parsed == op);
+    std::cout << "[PASS] test_serialization\n";
+}
+
 int main() {
     std::cout << "=== Running C++ OT Engine Test Suite ===\n";
     test_operation_lengths();
     test_document_apply();
     test_transform_convergence();
     test_compose();
+    test_serialization();
     std::cout << "=== ALL TESTS PASSED SUCCESSFULLY! ===\n";
     return 0;
 }
