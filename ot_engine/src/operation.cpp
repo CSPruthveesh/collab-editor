@@ -39,7 +39,7 @@ Operation& Operation::del(size_t count) {
 size_t Operation::base_length() const {
     size_t len = 0;
     for (const auto& comp : components_) {
-        std::visit([&len](<auto&& arg>) {
+        std::visit([&len](auto&& arg) {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, Retain>) {
                 len += arg.count;
@@ -55,7 +55,7 @@ size_t Operation::base_length() const {
 size_t Operation::target_length() const {
     size_t len = 0;
     for (const auto& comp : components_) {
-        std::visit([&len](<auto&& arg>) {
+        std::visit([&len](auto&& arg) {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, Retain>) {
                 len += arg.count;
