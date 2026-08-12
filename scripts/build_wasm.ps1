@@ -7,11 +7,16 @@ if (-not (Test-Path "frontend\wasm")) {
     New-Item -ItemType Directory -Path "frontend\wasm" | Out-Null
 }
 
-emcc -O3 -std=c++17 --bind `
+$emsdkPath = "d:\COLLEGE PREP\emsdk"
+if (Test-Path "$emsdkPath\upstream\emscripten") {
+    $env:PATH = "$emsdkPath;$emsdkPath\upstream\emscripten;$emsdkPath\node\24.19.0_64bit\bin;" + $env:PATH
+    $env:EMSDK = $emsdkPath
+}
+
+em++ -O3 -std=c++17 --bind `
     -s MODULARIZE=1 `
     -s EXPORT_NAME="OTEngine" `
     -s ALLOW_MEMORY_GROWTH=1 `
-    -fno-rtti -fno-exceptions `
     -I "$projectRoot\ot_engine\include" `
     "$projectRoot\ot_engine\src\operation.cpp" `
     "$projectRoot\ot_engine\src\document.cpp" `

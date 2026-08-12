@@ -26,7 +26,7 @@ if(EMSCRIPTEN OR BUILD_TARGET STREQUAL "wasm")
     set_target_properties(ot_engine_wasm PROPERTIES
         OUTPUT_NAME "ot_engine"
         SUFFIX ".js"
-        LINK_FLAGS "-s MODULARIZE=1 -s EXPORT_NAME='OTEngine' -s ALLOW_MEMORY_GROWTH=1 --bind -O3 -fno-rtti -fno-exceptions"
+        LINK_FLAGS "-s MODULARIZE=1 -s EXPORT_NAME='OTEngine' -s ALLOW_MEMORY_GROWTH=1 --bind -O3"
     )
 else()
     message(STATUS "Building Native Python module with pybind11")
