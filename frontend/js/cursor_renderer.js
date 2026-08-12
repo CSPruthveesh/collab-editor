@@ -5,6 +5,10 @@ export class CursorRenderer {
         this.container = containerElement;
         this.users = new Map(); 
         this.caretElements = new Map(); 
+        this.myUserId = null;
+    }
+    setMyUserId(userId) {
+        this.myUserId = userId;
     }
     setUsers(usersList) {
         this.users.clear();
@@ -41,6 +45,7 @@ export class CursorRenderer {
     }
     renderCarets() {
         this.users.forEach((presence, userId) => {
+            if (this.myUserId && userId === this.myUserId) return;
             let caret = this.caretElements.get(userId);
             if (!caret) {
                 caret = document.createElement('div');

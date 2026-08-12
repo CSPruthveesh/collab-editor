@@ -82,6 +82,8 @@ async function init() {
         codeEditor.setValue(data.content);
         lastSnapshot = data.content;
         otClient.revision = data.revision;
+        const me = (data.users || []).find(u => u.user_name === userName);
+        if (me) cursorRenderer.setMyUserId(me.user_id);
         cursorRenderer.setUsers(data.users || []);
     });
 
