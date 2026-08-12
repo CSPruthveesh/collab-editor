@@ -4,17 +4,14 @@ export class PresenceTracker {
         this.onPresenceUpdate = onPresenceUpdateCallback;
         this.throttleMs = throttleMs;
         this.timeout = null;
-
         this._bindEvents();
     }
-
     _bindEvents() {
         const handler = () => this.triggerUpdate();
         this.editor.addEventListener('keyup', handler);
         this.editor.addEventListener('click', handler);
         this.editor.addEventListener('select', handler);
     }
-
     triggerUpdate() {
         if (this.timeout) clearTimeout(this.timeout);
         this.timeout = setTimeout(() => {

@@ -2,24 +2,19 @@
 #include <sstream>
 #include <stdexcept>
 #include <variant>
-
 namespace ot {
-
 std::string to_json(const Operation& op) {
     std::ostringstream ss;
     ss << "[";
     bool first = true;
-
     for (const auto& comp : op.components()) {
         if (!first) ss << ",";
         first = false;
-
         std::visit([&ss](auto&& arg) {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, Retain>) {
                 ss << "{\"r\":" << arg.count << "}";
             } else if constexpr (std::is_same_v<T, Insert>) {
-                
                 ss << "{\"i\":\"";
                 for (char c : arg.text) {
                     if (c == '"') ss << "\\\"";
@@ -34,28 +29,22 @@ std::string to_json(const Operation& op) {
             }
         }, comp);
     }
-
     ss << "]";
     return ss.str();
 }
-
 Operation from_json(const std::string& json_str) {
     Operation op;
     size_t i = 0;
-    
-    // Skip whitespace
     auto skip_ws = [&]() {
         while (i < json_str.size() && (json_str[i] == ' ' || json_str[i] == '\t' || json_str[i] == '\n' || json_str[i] == '\r')) {
             i++;
         }
     };
-
     skip_ws();
     if (i >= json_str.size() || json_str[i] != '[') {
         throw std::invalid_argument("Invalid JSON array start");
     }
     i++; 
-
     while (i < json_str.size()) {
         skip_ws();
         if (i < json_str.size() && json_str[i] == ']') {
@@ -78,7 +67,6 @@ Operation from_json(const std::string& json_str) {
             if (json_str[i] != ':') throw std::invalid_argument("Expected ':' after key");
             i++;
             skip_ws();
-
             if (type == 'r') {
                 size_t count = 0;
                 while (i < json_str.size() && std::isdigit(json_str[i])) {
@@ -113,7 +101,6 @@ Operation from_json(const std::string& json_str) {
                 if (i < json_str.size() && json_str[i] == '"') i++; 
                 op.insert(text);
             }
-
             skip_ws();
             if (i < json_str.size() && json_str[i] == '}') {
                 i++;
@@ -122,8 +109,6 @@ Operation from_json(const std::string& json_str) {
             i++;
         }
     }
-
     return op;
 }
-
 } 

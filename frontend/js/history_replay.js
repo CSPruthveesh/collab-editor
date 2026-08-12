@@ -7,10 +7,8 @@ export class HistoryReplay {
         this.wasm = wasmModule;
         this.historyOps = [];
         this.docStates = [];
-
         this._bindEvents();
     }
-
     _bindEvents() {
         if (this.slider) {
             this.slider.addEventListener('input', () => {
@@ -19,7 +17,6 @@ export class HistoryReplay {
             });
         }
     }
-
     async loadHistory(docId) {
         try {
             const res = await fetch(`/api/documents/${docId}/history`);
@@ -32,11 +29,9 @@ export class HistoryReplay {
             console.error("Failed to load history:", err);
         }
     }
-
     precomputeStates() {
         let currentText = "";
         this.docStates = [currentText];
-
         for (const item of this.historyOps) {
             try {
                 currentText = this.wasm.apply_json(currentText, item.op_json);
@@ -45,16 +40,13 @@ export class HistoryReplay {
                 console.error("Error applying history op:", err);
             }
         }
-
         if (this.slider) {
             this.slider.min = 0;
             this.slider.max = this.docStates.length - 1;
             this.slider.value = this.docStates.length - 1;
         }
-
         this.showRevision(this.docStates.length - 1);
     }
-
     showRevision(rev) {
         if (this.revisionLabel) {
             this.revisionLabel.textContent = `Revision ${rev} / ${this.docStates.length - 1}`;
@@ -63,7 +55,6 @@ export class HistoryReplay {
             this.textPreview.textContent = this.docStates[rev];
         }
     }
-
     close() {
         if (this.modal) this.modal.style.display = 'none';
     }

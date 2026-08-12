@@ -8,18 +8,14 @@ export class WSClient {
         this.callbacks = {};
         this.isReconnecting = false;
     }
-
     on(event, callback) {
         this.callbacks[event] = callback;
     }
-
     connect() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
-        const url = `${protocol}//${host}/ws/${this.docId}?user_name=${encodeURIComponent(this.userName)}`;
-
+        const url = `${protocol}
         this.ws = new WebSocket(url);
-
         this.ws.onopen = () => {
             this.reconnectAttempts = 0;
             if (this.callbacks['status']) this.callbacks['status']('connected');
@@ -28,7 +24,6 @@ export class WSClient {
             }
             this.isReconnecting = false;
         };
-
         this.ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -40,25 +35,21 @@ export class WSClient {
                 console.error("Error parsing WebSocket message:", err);
             }
         };
-
         this.ws.onclose = () => {
             this.isReconnecting = true;
             if (this.callbacks['status']) this.callbacks['status']('reconnecting');
             this.scheduleReconnect();
         };
-
         this.ws.onerror = (err) => {
             console.error("WebSocket error:", err);
             this.ws.close();
         };
     }
-
     scheduleReconnect() {
         const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), this.maxReconnectDelay);
         this.reconnectAttempts++;
         setTimeout(() => this.connect(), delay);
     }
-
     sendEdit(clientRevision, opJson) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
@@ -68,7 +59,6 @@ export class WSClient {
             }));
         }
     }
-
     sendPresence(cursorPos, selStart, selEnd) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({

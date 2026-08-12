@@ -4,7 +4,6 @@ export class FileSidebar {
         this.onSelectDocument = onSelectDocumentCallback;
         this.activeDocId = null;
     }
-
     async loadDocuments() {
         try {
             const res = await fetch('/api/documents');
@@ -16,11 +15,9 @@ export class FileSidebar {
             console.error("Failed to load document list:", err);
         }
     }
-
     render(documents) {
         if (!this.container) return;
         this.container.innerHTML = '';
-
         documents.forEach(doc => {
             const item = document.createElement('div');
             item.className = `doc-item ${doc.id === this.activeDocId ? 'active' : ''}`;
