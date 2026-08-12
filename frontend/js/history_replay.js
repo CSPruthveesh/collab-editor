@@ -6,6 +6,7 @@ export class HistoryReplay {
         this.textPreview = document.getElementById(textPreviewId);
         this.metaInfo = document.getElementById('history-meta-info');
         this.wasm = wasmModule;
+        this.commits = [];
         this.historyOps = [];
         this.docStates = [];
         this._bindEvents();
@@ -14,23 +15,45 @@ export class HistoryReplay {
     _bindEvents() {
         if (this.slider) {
             this.slider.addEventListener('input', () => {
-                const rev = parseInt(this.slider.value, 10);
-                this.showRevision(rev);
+                const index = parseInt(this.slider.value, 10);
+                this.showRevision(index);
             });
         }
     }
 
     async loadHistory(docId) {
         try {
-            const res = await fetch(`/api/documents/${docId}/history`);
-            if (res.ok) {
-                this.historyOps = await res.json();
-                this.precomputeStates();
-                if (this.modal) this.modal.style.display = 'flex';
+            const commitRes = await fetch(`/api/documents/${docId}/commits`);
+            if (commitRes.ok) {
+                this.commits = await commitRes.json();
             }
+
+            if (this.commits && this.commits.length > 0) {
+                this.renderCommitHistory();
+            } else {
+                const res = await fetch(`/api/documents/${docId}/history`);
+                if (res.ok) {
+                    this.historyOps = await res.json();
+                    this.precomputeStates();
+                }
+            }
+
+            if (this.modal) this.modal.style.display = 'flex';
         } catch (err) {
-            console.error("Failed to load history:", err);
+            console.error("Failed to load commit history:", err);
         }
+    }
+
+    renderCommitHistory() {
+        this.docStates = this.commits.map(c => c.content);
+
+        if (this.slider) {
+            this.slider.min = 0;
+            this.slider.max = Math.max(0, this.commits.length - 1);
+            this.slider.value = this.commits.length - 1;
+        }
+
+        this.showRevision(this.commits.length - 1);
     }
 
     precomputeStates() {
@@ -55,21 +78,37 @@ export class HistoryReplay {
         this.showRevision(this.docStates.length - 1);
     }
 
-    showRevision(rev) {
-        if (this.revisionLabel) {
-            this.revisionLabel.textContent = `Revision ${rev} / ${this.docStates.length - 1}`;
-        }
-        if (this.textPreview && this.docStates[rev] !== undefined) {
-            this.textPreview.textContent = this.docStates[rev] || "(Empty Document)";
-        }
-        if (this.metaInfo) {
-            if (rev === 0) {
-                this.metaInfo.textContent = "Initial Document Creation";
-            } else if (this.historyOps[rev - 1]) {
-                const opItem = this.historyOps[rev - 1];
-                const author = opItem.user_id || "Anonymous";
-                const time = opItem.timestamp ? new Date(opItem.timestamp * 1000).toLocaleTimeString() : "";
-                this.metaInfo.textContent = `Revision ${rev} edited by User #${author} ${time ? 'at ' + time : ''}`;
+    showRevision(index) {
+        if (this.commits && this.commits.length > 0) {
+            const commit = this.commits[index];
+            if (!commit) return;
+
+            if (this.revisionLabel) {
+                this.revisionLabel.textContent = `Commit ${index + 1} / ${this.commits.length}`;
+            }
+            if (this.textPreview) {
+                this.textPreview.textContent = commit.content || "(Empty Document)";
+            }
+            if (this.metaInfo) {
+                const time = commit.timestamp ? new Date(commit.timestamp * 1000).toLocaleTimeString() : "";
+                this.metaInfo.textContent = `Commit: "${commit.message}" by ${commit.user_id} at ${time}`;
+            }
+        } else {
+            if (this.revisionLabel) {
+                this.revisionLabel.textContent = `Revision ${index} / ${this.docStates.length - 1}`;
+            }
+            if (this.textPreview && this.docStates[index] !== undefined) {
+                this.textPreview.textContent = this.docStates[index] || "(Empty Document)";
+            }
+            if (this.metaInfo) {
+                if (index === 0) {
+                    this.metaInfo.textContent = "Initial Document Creation";
+                } else if (this.historyOps[index - 1]) {
+                    const opItem = this.historyOps[index - 1];
+                    const author = opItem.user_id || "Anonymous";
+                    const time = opItem.timestamp ? new Date(opItem.timestamp * 1000).toLocaleTimeString() : "";
+                    this.metaInfo.textContent = `Revision ${index} edited by User #${author} ${time ? 'at ' + time : ''}`;
+                }
             }
         }
     }

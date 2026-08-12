@@ -67,11 +67,37 @@ async function init() {
     historyReplay = new HistoryReplay('history-modal', 'history-slider', 'history-rev-label', 'history-text-preview', wasmModule);
     const historyBtn = document.getElementById('history-btn');
     const closeHistoryBtn = document.getElementById('close-history-btn');
+    const commitBtn = document.getElementById('commit-btn');
+
     if (historyBtn) {
         historyBtn.addEventListener('click', () => historyReplay.loadHistory(docId));
     }
     if (closeHistoryBtn) {
         closeHistoryBtn.addEventListener('click', () => historyReplay.close());
+    }
+    if (commitBtn) {
+        commitBtn.addEventListener('click', async () => {
+            const message = prompt("Enter commit message:", "Manual Version Commit");
+            if (message && message.trim()) {
+                try {
+                    const content = codeEditor.getValue();
+                    const res = await fetch(`/api/documents/${docId}/commit`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content: content,
+                            message: message.trim(),
+                            user_name: userName
+                        })
+                    });
+                    if (res.ok) {
+                        alert("Commit created successfully!");
+                    }
+                } catch (err) {
+                    console.error("Failed to post commit:", err);
+                }
+            }
+        });
     }
 
     wsClient.on('status', (status) => {

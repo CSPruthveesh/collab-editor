@@ -43,6 +43,17 @@ class PersistenceManager:
                 timestamp REAL
             )
             """)
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS commits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                doc_id TEXT,
+                revision INTEGER,
+                content TEXT,
+                message TEXT,
+                user_id TEXT,
+                timestamp REAL
+            )
+            """)
             conn.commit()
 
     def save_document_meta(self, doc_id: str, title: str = "Untitled Document", owner: str = "Global"):
@@ -72,6 +83,7 @@ class PersistenceManager:
             if remaining == 0:
                 conn.execute("DELETE FROM operations WHERE doc_id = ?", (doc_id,))
                 conn.execute("DELETE FROM snapshots WHERE doc_id = ?", (doc_id,))
+                conn.execute("DELETE FROM commits WHERE doc_id = ?", (doc_id,))
             conn.commit()
 
     def list_documents(self, owner: Optional[str] = None) -> List[dict]:
@@ -100,6 +112,22 @@ class PersistenceManager:
                 (doc_id, revision, content, time.time())
             )
             conn.commit()
+
+    def save_commit(self, doc_id: str, revision: int, content: str, message: str, user_id: str):
+        with self._get_conn() as conn:
+            conn.execute(
+                "INSERT INTO commits (doc_id, revision, content, message, user_id, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                (doc_id, revision, content, message, user_id, time.time())
+            )
+            conn.commit()
+
+    def get_commits(self, doc_id: str) -> List[dict]:
+        with self._get_conn() as conn:
+            rows = conn.execute(
+                "SELECT id, doc_id, revision, content, message, user_id, timestamp FROM commits WHERE doc_id = ? ORDER BY id ASC",
+                (doc_id,)
+            ).fetchall()
+            return [dict(r) for r in rows]
 
     def load_document_state(self, doc_id: str) -> Tuple[str, int, List[Tuple[int, str]]]:
         with self._get_conn() as conn:

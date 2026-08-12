@@ -11,7 +11,34 @@ export class FileSidebar {
         this.activeDropdown = null;
 
         this._initResizeAndCollapse();
+        this._initNewDocButton();
         this._bindGlobalClick();
+    }
+
+    _initNewDocButton() {
+        const newDocBtn = document.getElementById('new-doc-btn');
+        if (newDocBtn) {
+            newDocBtn.addEventListener('click', async () => {
+                const title = prompt("Enter document title:", "Untitled Document");
+                if (title && title.trim()) {
+                    try {
+                        const res = await fetch('/api/documents', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ title: title.trim(), owner: this.profileId })
+                        });
+                        if (res.ok) {
+                            const newDoc = await res.json();
+                            if (this.onSelectDocument) {
+                                this.onSelectDocument(newDoc.id);
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Failed to create new document:", err);
+                    }
+                }
+            });
+        }
     }
 
     setActiveDocId(docId) {

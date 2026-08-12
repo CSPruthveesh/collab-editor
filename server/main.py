@@ -31,6 +31,11 @@ class CreateDocRequest(BaseModel):
 class RenameDocRequest(BaseModel):
     title: str
 
+class CommitDocRequest(BaseModel):
+    content: str
+    message: str = "Manual Commit"
+    user_name: str = "Anonymous"
+
 @app.get("/api/documents")
 def list_documents(owner: Optional[str] = Query(None)):
     return persistence.list_documents(owner=owner)
@@ -54,6 +59,17 @@ async def delete_document(doc_id: str, owner: Optional[str] = Query(None)):
     persistence.delete_document(doc_id, owner=owner)
     await conn_manager.broadcast(doc_id, {"type": "doc_deleted", "doc_id": doc_id, "owner": owner})
     return {"status": "ok", "id": doc_id}
+
+@app.post("/api/documents/{doc_id}/commit")
+def commit_document(doc_id: str, req: CommitDocRequest):
+    doc_state = doc_manager.get_or_create(doc_id)
+    rev = doc_state.revision
+    persistence.save_commit(doc_id, rev, req.content, req.message, req.user_name)
+    return {"status": "ok", "doc_id": doc_id, "revision": rev, "message": req.message}
+
+@app.get("/api/documents/{doc_id}/commits")
+def list_commits(doc_id: str):
+    return persistence.get_commits(doc_id)
 
 @app.get("/api/documents/{doc_id}/history")
 def get_document_history(doc_id: str):
