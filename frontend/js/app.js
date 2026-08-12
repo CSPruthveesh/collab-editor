@@ -4,14 +4,20 @@ import { CursorRenderer } from './cursor_renderer.js';
 import { CodeEditor } from './editor.js';
 import { PresenceTracker } from './presence.js';
 import { FileSidebar } from './file_sidebar.js';
+import { HistoryReplay } from './history_replay.js';
+import { UndoManager } from './undo_manager.js';
+
 const urlParams = new URLSearchParams(window.location.search);
 const docId = urlParams.get('doc') || 'default-doc';
 const userName = urlParams.get('name') || `User_${Math.floor(Math.random() * 1000)}`;
+
 const docTitle = document.getElementById('doc-title');
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const editorContainer = document.getElementById('editor-container');
+
 docTitle.value = `Document: ${docId}`;
+
 let wasmModule = null;
 let otClient = null;
 let wsClient = null;
@@ -19,8 +25,6 @@ let cursorRenderer = null;
 let codeEditor = null;
 let presenceTracker = null;
 let fileSidebar = null;
-import { HistoryReplay } from './history_replay.js';
-import { UndoManager } from './undo_manager.js';
 let historyReplay = null;
 let undoManager = null;
 async function init() {
@@ -30,14 +34,14 @@ async function init() {
     otClient = new OTClient(wasmModule);
     wsClient = new WSClient(docId, userName);
     cursorRenderer = new CursorRenderer('avatar-container', document.getElementById('code-editor'), editorContainer);
-    codeEditor = new CodeEditor('code-editor', 'line-numbers', (opJson) => {
-        undoManager.pushEdit(opJson);
-        otClient.onLocalEdit(opJson, (rev, op) => {
+    undoManager = new UndoManager(document.getElementById('code-editor'), (inverseOpJson) => {
+        otClient.onLocalEdit(inverseOpJson, (rev, op) => {
             wsClient.sendEdit(rev, op);
         });
     });
-    undoManager = new UndoManager(codeEditor.editor, (inverseOpJson) => {
-        otClient.onLocalEdit(inverseOpJson, (rev, op) => {
+    codeEditor = new CodeEditor('code-editor', 'line-numbers', (opJson) => {
+        if (undoManager) undoManager.pushEdit(opJson);
+        otClient.onLocalEdit(opJson, (rev, op) => {
             wsClient.sendEdit(rev, op);
         });
     });
