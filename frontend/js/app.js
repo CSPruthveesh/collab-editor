@@ -16,7 +16,38 @@ const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const editorContainer = document.getElementById('editor-container');
 
-docTitle.value = `Document: ${docId}`;
+docTitle.value = docId;
+
+async function loadDocMeta() {
+    try {
+        const res = await fetch(`/api/documents/${encodeURIComponent(docId)}?owner=${encodeURIComponent(userName)}`);
+        if (res.ok) {
+            const meta = await res.json();
+            if (meta && meta.title) {
+                docTitle.value = meta.title;
+            }
+        }
+    } catch (err) {
+        console.error("Failed to load document title:", err);
+    }
+}
+loadDocMeta();
+
+docTitle.addEventListener('change', async () => {
+    const newTitle = docTitle.value.trim();
+    if (newTitle) {
+        try {
+            await fetch(`/api/documents/${encodeURIComponent(docId)}/rename?owner=${encodeURIComponent(userName)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: newTitle })
+            });
+            if (fileSidebar) fileSidebar.loadDocuments();
+        } catch (err) {
+            console.error("Failed to rename document title:", err);
+        }
+    }
+});
 
 const profileAvatar = document.getElementById('user-profile-avatar');
 const profileName = document.getElementById('user-profile-name');

@@ -40,6 +40,13 @@ class CommitDocRequest(BaseModel):
 def list_documents(owner: Optional[str] = Query(None)):
     return persistence.list_documents(owner=owner)
 
+@app.get("/api/documents/{doc_id}")
+def get_document_meta(doc_id: str, owner: Optional[str] = Query(None)):
+    meta = persistence.get_document_meta(doc_id, owner=owner)
+    if not meta:
+        return {"id": doc_id, "title": doc_id, "owner": owner or "Global"}
+    return meta
+
 @app.post("/api/documents")
 def create_document(req: CreateDocRequest):
     doc_id = str(uuid.uuid4())[:8]

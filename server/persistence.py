@@ -18,13 +18,17 @@ class PersistenceManager:
         with self._get_conn() as conn:
             conn.execute("""
             CREATE TABLE IF NOT EXISTS documents (
-                id TEXT,
+                id TEXT PRIMARY KEY,
                 title TEXT,
                 owner TEXT DEFAULT 'Global',
-                created_at REAL,
-                PRIMARY KEY (id, owner)
+                created_at REAL
             )
             """)
+            try:
+                conn.execute("ALTER TABLE documents ADD COLUMN owner TEXT DEFAULT 'Global'")
+            except Exception:
+                pass
+
             conn.execute("""
             CREATE TABLE IF NOT EXISTS operations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,38 +63,37 @@ class PersistenceManager:
     def save_document_meta(self, doc_id: str, title: str = "Untitled Document", owner: str = "Global"):
         with self._get_conn() as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO documents (id, title, owner, created_at) VALUES (?, ?, ?, ?)",
+                "INSERT OR IGNORE INTO documents (id, title, owner, created_at) VALUES (?, ?, ?, ?)",
                 (doc_id, title, owner, time.time())
             )
             conn.commit()
 
-    def rename_document(self, doc_id: str, new_title: str, owner: Optional[str] = None):
+    def get_document_meta(self, doc_id: str, owner: Optional[str] = None) -> Optional[dict]:
         with self._get_conn() as conn:
             if owner:
-                conn.execute("UPDATE documents SET title = ? WHERE id = ? AND owner = ?", (new_title, doc_id, owner))
+                row = conn.execute("SELECT id, title, owner, created_at FROM documents WHERE id = ? AND (owner = ? OR owner = 'Global')", (doc_id, owner)).fetchone()
             else:
-                conn.execute("UPDATE documents SET title = ? WHERE id = ?", (new_title, doc_id))
+                row = conn.execute("SELECT id, title, owner, created_at FROM documents WHERE id = ?", (doc_id,)).fetchone()
+            return dict(row) if row else None
+
+    def rename_document(self, doc_id: str, new_title: str, owner: Optional[str] = None):
+        with self._get_conn() as conn:
+            conn.execute("UPDATE documents SET title = ? WHERE id = ?", (new_title, doc_id))
             conn.commit()
 
     def delete_document(self, doc_id: str, owner: Optional[str] = None):
         with self._get_conn() as conn:
-            if owner:
-                conn.execute("DELETE FROM documents WHERE id = ? AND owner = ?", (doc_id, owner))
-            else:
-                conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
-
-            remaining = conn.execute("SELECT COUNT(*) FROM documents WHERE id = ?", (doc_id,)).fetchone()[0]
-            if remaining == 0:
-                conn.execute("DELETE FROM operations WHERE doc_id = ?", (doc_id,))
-                conn.execute("DELETE FROM snapshots WHERE doc_id = ?", (doc_id,))
-                conn.execute("DELETE FROM commits WHERE doc_id = ?", (doc_id,))
+            conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+            conn.execute("DELETE FROM operations WHERE doc_id = ?", (doc_id,))
+            conn.execute("DELETE FROM snapshots WHERE doc_id = ?", (doc_id,))
+            conn.execute("DELETE FROM commits WHERE doc_id = ?", (doc_id,))
             conn.commit()
 
     def list_documents(self, owner: Optional[str] = None) -> List[dict]:
         with self._get_conn() as conn:
             if owner:
                 rows = conn.execute(
-                    "SELECT id, title, owner, created_at FROM documents WHERE owner = ? ORDER BY created_at DESC",
+                    "SELECT id, title, owner, created_at FROM documents WHERE owner = ? OR owner = 'Global' ORDER BY created_at DESC",
                     (owner,)
                 ).fetchall()
             else:
