@@ -1,15 +1,22 @@
 export class FileSidebar {
-    constructor(sidebarContainerId, onSelectDocumentCallback) {
+    constructor(sidebarContainerId, onSelectDocumentCallback, profileId = 'Global') {
         this.container = document.getElementById(sidebarContainerId);
         this.sidebar = document.getElementById('sidebar');
         this.resizer = document.getElementById('sidebar-resizer');
         this.toggleBtn = document.getElementById('sidebar-toggle-btn');
+        this.headerIcon = document.getElementById('sidebar-header-icon');
         this.onSelectDocument = onSelectDocumentCallback;
+        this.profileId = profileId;
         this.activeDocId = null;
         this.activeDropdown = null;
 
         this._initResizeAndCollapse();
         this._bindGlobalClick();
+    }
+
+    setProfile(profileId) {
+        this.profileId = profileId;
+        this.loadDocuments();
     }
 
     _bindGlobalClick() {
@@ -37,9 +44,9 @@ export class FileSidebar {
             const newWidth = Math.min(Math.max(e.clientX, 60), 480);
             this.sidebar.style.width = `${newWidth}px`;
             if (newWidth < 120) {
-                this.sidebar.classList.add('collapsed');
+                this._setCollapsed(true);
             } else {
-                this.sidebar.classList.remove('collapsed');
+                this._setCollapsed(false);
             }
         });
 
@@ -52,22 +59,49 @@ export class FileSidebar {
             }
         });
 
+        // Feature 2: Double-Click Collapse on Resizer Edge
+        this.resizer.addEventListener('dblclick', () => {
+            const isCollapsed = this.sidebar.classList.contains('collapsed');
+            this._setCollapsed(!isCollapsed);
+        });
+
         if (this.toggleBtn) {
             this.toggleBtn.addEventListener('click', () => {
-                this.sidebar.classList.toggle('collapsed');
+                const isCollapsed = this.sidebar.classList.contains('collapsed');
+                this._setCollapsed(!isCollapsed);
             });
         }
     }
 
+    // Feature 1: Responsive Header Icon Swap on Collapse State
+    _setCollapsed(collapsed) {
+        if (collapsed) {
+            this.sidebar.classList.add('collapsed');
+            this.sidebar.style.width = '60px';
+            if (this.headerIcon) {
+                // Swap main icon to collapse indicator icon
+                this.headerIcon.innerHTML = `<path d="M13 5l7 7-7 7M5 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+            }
+        } else {
+            this.sidebar.classList.remove('collapsed');
+            this.sidebar.style.width = '250px';
+            if (this.headerIcon) {
+                // Swap back to main document icon
+                this.headerIcon.innerHTML = `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>`;
+            }
+        }
+    }
+
+    // Feature 3: Profile-Specific Database Operations
     async loadDocuments() {
         try {
-            const res = await fetch('/api/documents');
+            const res = await fetch(`/api/documents?owner=${encodeURIComponent(this.profileId)}`);
             if (res.ok) {
                 const docs = await res.json();
                 this.render(docs);
             }
         } catch (err) {
-            console.error("Failed to load document list:", err);
+            console.error("Failed to load profile document list:", err);
         }
     }
 
@@ -99,21 +133,36 @@ export class FileSidebar {
             </div>
         `;
 
-        menu.querySelector('.rename-item').addEventListener('click', (ev) => {
+        // Feature 4: Persistent Rename Operation
+        menu.querySelector('.rename-item').addEventListener('click', async (ev) => {
             ev.stopPropagation();
             this.closeDropdown();
             const newTitle = prompt("Enter new document name:", doc.title || "Untitled");
             if (newTitle && newTitle.trim()) {
-                doc.title = newTitle.trim();
-                this.loadDocuments();
+                try {
+                    await fetch(`/api/documents/${doc.id}/rename`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: newTitle.trim() })
+                    });
+                    this.loadDocuments();
+                } catch (err) {
+                    console.error("Failed to rename document:", err);
+                }
             }
         });
 
-        menu.querySelector('.delete-item').addEventListener('click', (ev) => {
+        // Feature 4: Persistent Delete Operation
+        menu.querySelector('.delete-item').addEventListener('click', async (ev) => {
             ev.stopPropagation();
             this.closeDropdown();
             if (confirm(`Are you sure you want to delete "${doc.title || doc.id}"?`)) {
-                this.loadDocuments();
+                try {
+                    await fetch(`/api/documents/${doc.id}`, { method: 'DELETE' });
+                    this.loadDocuments();
+                } catch (err) {
+                    console.error("Failed to delete document:", err);
+                }
             }
         });
 

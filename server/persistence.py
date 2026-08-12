@@ -3,23 +3,32 @@ import json
 import time
 from typing import Optional, Tuple, List
 from server.config import settings
+
 class PersistenceManager:
     def __init__(self, db_path: str = settings.DB_PATH):
         self.db_path = db_path
         self._init_db()
+
     def _get_conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
+
     def _init_db(self):
         with self._get_conn() as conn:
             conn.execute("""
             CREATE TABLE IF NOT EXISTS documents (
                 id TEXT PRIMARY KEY,
                 title TEXT,
+                owner TEXT DEFAULT 'Global',
                 created_at REAL
             )
             """)
+            try:
+                conn.execute("ALTER TABLE documents ADD COLUMN owner TEXT DEFAULT 'Global'")
+            except Exception:
+                pass
+
             conn.execute("""
             CREATE TABLE IF NOT EXISTS operations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,13 +48,38 @@ class PersistenceManager:
             )
             """)
             conn.commit()
-    def save_document_meta(self, doc_id: str, title: str = "Untitled Document"):
+
+    def save_document_meta(self, doc_id: str, title: str = "Untitled Document", owner: str = "Global"):
         with self._get_conn() as conn:
             conn.execute(
-                "INSERT OR IGNORE INTO documents (id, title, created_at) VALUES (?, ?, ?)",
-                (doc_id, title, time.time())
+                "INSERT OR REPLACE INTO documents (id, title, owner, created_at) VALUES (?, ?, ?, ?)",
+                (doc_id, title, owner, time.time())
             )
             conn.commit()
+
+    def rename_document(self, doc_id: str, new_title: str):
+        with self._get_conn() as conn:
+            conn.execute("UPDATE documents SET title = ? WHERE id = ?", (new_title, doc_id))
+            conn.commit()
+
+    def delete_document(self, doc_id: str):
+        with self._get_conn() as conn:
+            conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+            conn.execute("DELETE FROM operations WHERE doc_id = ?", (doc_id,))
+            conn.execute("DELETE FROM snapshots WHERE doc_id = ?", (doc_id,))
+            conn.commit()
+
+    def list_documents(self, owner: Optional[str] = None) -> List[dict]:
+        with self._get_conn() as conn:
+            if owner:
+                rows = conn.execute(
+                    "SELECT id, title, owner, created_at FROM documents WHERE owner = ? OR owner = 'Global' ORDER BY created_at DESC",
+                    (owner,)
+                ).fetchall()
+            else:
+                rows = conn.execute("SELECT id, title, owner, created_at FROM documents ORDER BY created_at DESC").fetchall()
+            return [dict(r) for r in rows]
+
     def save_operation(self, doc_id: str, revision: int, op_json: str, user_id: str):
         with self._get_conn() as conn:
             conn.execute(
@@ -53,6 +87,7 @@ class PersistenceManager:
                 (doc_id, revision, op_json, user_id, time.time())
             )
             conn.commit()
+
     def save_snapshot(self, doc_id: str, revision: int, content: str):
         with self._get_conn() as conn:
             conn.execute(
@@ -60,11 +95,8 @@ class PersistenceManager:
                 (doc_id, revision, content, time.time())
             )
             conn.commit()
+
     def load_document_state(self, doc_id: str) -> Tuple[str, int, List[Tuple[int, str]]]:
-        """
-        Returns (content, revision, ops_after_snapshot).
-        ops_after_snapshot is a list of (revision, op_json).
-        """
         with self._get_conn() as conn:
             snapshot_row = conn.execute(
                 "SELECT revision, content FROM snapshots WHERE doc_id = ?", (doc_id,)

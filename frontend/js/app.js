@@ -60,7 +60,7 @@ async function init() {
 
     fileSidebar = new FileSidebar('doc-list', (newDocId) => {
         window.location.href = `?doc=${encodeURIComponent(newDocId)}&name=${encodeURIComponent(userName)}`;
-    });
+    }, userName);
     fileSidebar.loadDocuments();
 
     historyReplay = new HistoryReplay('history-modal', 'history-slider', 'history-rev-label', 'history-text-preview', wasmModule);
