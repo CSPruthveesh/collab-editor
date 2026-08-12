@@ -14,6 +14,10 @@ export class FileSidebar {
         this._bindGlobalClick();
     }
 
+    setActiveDocId(docId) {
+        this.activeDocId = docId;
+    }
+
     setProfile(profileId) {
         this.profileId = profileId;
         this.loadDocuments();
@@ -159,14 +163,13 @@ export class FileSidebar {
             }
         });
 
-        // Switch to latest file created after deleting
         menu.querySelector('.delete-item').addEventListener('click', async (ev) => {
             ev.stopPropagation();
             this.closeDropdown();
             if (confirm(`Are you sure you want to delete "${doc.title || doc.id}"?`)) {
                 try {
-                    await fetch(`/api/documents/${doc.id}`, { method: 'DELETE' });
                     const isDeletingActiveDoc = (doc.id === this.activeDocId);
+                    await fetch(`/api/documents/${doc.id}`, { method: 'DELETE' });
                     await this.loadDocuments(isDeletingActiveDoc);
                 } catch (err) {
                     console.error("Failed to delete document:", err);

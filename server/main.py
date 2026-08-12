@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 if hasattr(os, "add_dll_directory") and os.path.exists(r"C:\msys64\ucrt64\bin"):
     os.add_dll_directory(r"C:\msys64\ucrt64\bin")
 
-from server.websocket_handler import handle_websocket, persistence, doc_manager
+from server.websocket_handler import handle_websocket, persistence, doc_manager, conn_manager
 
 app = FastAPI(title="Collaborative Code Editor API")
 
@@ -50,8 +50,9 @@ def rename_document(doc_id: str, req: RenameDocRequest):
     return {"status": "ok", "id": doc_id, "title": req.title}
 
 @app.delete("/api/documents/{doc_id}")
-def delete_document(doc_id: str):
+async def delete_document(doc_id: str):
     persistence.delete_document(doc_id)
+    await conn_manager.broadcast(doc_id, {"type": "doc_deleted", "doc_id": doc_id})
     return {"status": "ok", "id": doc_id}
 
 @app.get("/api/documents/{doc_id}/history")

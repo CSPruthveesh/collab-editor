@@ -61,6 +61,7 @@ async function init() {
     fileSidebar = new FileSidebar('doc-list', (newDocId) => {
         window.location.href = `?doc=${encodeURIComponent(newDocId)}&name=${encodeURIComponent(userName)}`;
     }, userName);
+    fileSidebar.setActiveDocId(docId);
     fileSidebar.loadDocuments();
 
     historyReplay = new HistoryReplay('history-modal', 'history-slider', 'history-rev-label', 'history-text-preview', wasmModule);
@@ -115,6 +116,12 @@ async function init() {
 
     wsClient.on('user_leave', (data) => {
         cursorRenderer.removeUser(data.user_id);
+    });
+
+    wsClient.on('doc_deleted', (data) => {
+        if (data.doc_id === docId) {
+            fileSidebar.loadDocuments(true);
+        }
     });
 
     wsClient.connect();
