@@ -151,7 +151,7 @@ export class FileSidebar {
             const newTitle = prompt("Enter new document name:", doc.title || "Untitled");
             if (newTitle && newTitle.trim()) {
                 try {
-                    await fetch(`/api/documents/${doc.id}/rename`, {
+                    await fetch(`/api/documents/${doc.id}/rename?owner=${encodeURIComponent(this.profileId)}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ title: newTitle.trim() })
@@ -169,7 +169,7 @@ export class FileSidebar {
             if (confirm(`Are you sure you want to delete "${doc.title || doc.id}"?`)) {
                 try {
                     const isDeletingActiveDoc = (doc.id === this.activeDocId);
-                    await fetch(`/api/documents/${doc.id}`, { method: 'DELETE' });
+                    await fetch(`/api/documents/${doc.id}?owner=${encodeURIComponent(this.profileId)}`, { method: 'DELETE' });
                     await this.loadDocuments(isDeletingActiveDoc);
                 } catch (err) {
                     console.error("Failed to delete document:", err);

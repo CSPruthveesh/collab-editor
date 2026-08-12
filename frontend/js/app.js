@@ -119,8 +119,10 @@ async function init() {
     });
 
     wsClient.on('doc_deleted', (data) => {
-        if (data.doc_id === docId) {
+        if (data.doc_id === docId && (!data.owner || data.owner === userName)) {
             fileSidebar.loadDocuments(true);
+        } else {
+            fileSidebar.loadDocuments(false);
         }
     });
 

@@ -11,7 +11,7 @@ conn_manager = ConnectionManager()
 persistence = PersistenceManager()
 async def handle_websocket(websocket: WebSocket, doc_id: str, user_name: str = "Anonymous"):
     user_id = str(uuid.uuid4())[:8]
-    persistence.save_document_meta(doc_id)
+    persistence.save_document_meta(doc_id, owner=user_name)
     doc_state = doc_manager.get_or_create(doc_id)
     if doc_state.revision == 0 and not doc_state.history:
         content, snapshot_rev, ops = persistence.load_document_state(doc_id)

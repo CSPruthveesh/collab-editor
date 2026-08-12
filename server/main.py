@@ -45,14 +45,14 @@ def create_document(req: CreateDocRequest):
     return {"id": doc_id, "title": req.title, "owner": req.owner}
 
 @app.post("/api/documents/{doc_id}/rename")
-def rename_document(doc_id: str, req: RenameDocRequest):
-    persistence.rename_document(doc_id, req.title)
+def rename_document(doc_id: str, req: RenameDocRequest, owner: Optional[str] = Query(None)):
+    persistence.rename_document(doc_id, req.title, owner=owner)
     return {"status": "ok", "id": doc_id, "title": req.title}
 
 @app.delete("/api/documents/{doc_id}")
-async def delete_document(doc_id: str):
-    persistence.delete_document(doc_id)
-    await conn_manager.broadcast(doc_id, {"type": "doc_deleted", "doc_id": doc_id})
+async def delete_document(doc_id: str, owner: Optional[str] = Query(None)):
+    persistence.delete_document(doc_id, owner=owner)
+    await conn_manager.broadcast(doc_id, {"type": "doc_deleted", "doc_id": doc_id, "owner": owner})
     return {"status": "ok", "id": doc_id}
 
 @app.get("/api/documents/{doc_id}/history")

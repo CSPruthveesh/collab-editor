@@ -18,17 +18,13 @@ class PersistenceManager:
         with self._get_conn() as conn:
             conn.execute("""
             CREATE TABLE IF NOT EXISTS documents (
-                id TEXT PRIMARY KEY,
+                id TEXT,
                 title TEXT,
                 owner TEXT DEFAULT 'Global',
-                created_at REAL
+                created_at REAL,
+                PRIMARY KEY (id, owner)
             )
             """)
-            try:
-                conn.execute("ALTER TABLE documents ADD COLUMN owner TEXT DEFAULT 'Global'")
-            except Exception:
-                pass
-
             conn.execute("""
             CREATE TABLE IF NOT EXISTS operations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,23 +53,32 @@ class PersistenceManager:
             )
             conn.commit()
 
-    def rename_document(self, doc_id: str, new_title: str):
+    def rename_document(self, doc_id: str, new_title: str, owner: Optional[str] = None):
         with self._get_conn() as conn:
-            conn.execute("UPDATE documents SET title = ? WHERE id = ?", (new_title, doc_id))
+            if owner:
+                conn.execute("UPDATE documents SET title = ? WHERE id = ? AND owner = ?", (new_title, doc_id, owner))
+            else:
+                conn.execute("UPDATE documents SET title = ? WHERE id = ?", (new_title, doc_id))
             conn.commit()
 
-    def delete_document(self, doc_id: str):
+    def delete_document(self, doc_id: str, owner: Optional[str] = None):
         with self._get_conn() as conn:
-            conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
-            conn.execute("DELETE FROM operations WHERE doc_id = ?", (doc_id,))
-            conn.execute("DELETE FROM snapshots WHERE doc_id = ?", (doc_id,))
+            if owner:
+                conn.execute("DELETE FROM documents WHERE id = ? AND owner = ?", (doc_id, owner))
+            else:
+                conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+
+            remaining = conn.execute("SELECT COUNT(*) FROM documents WHERE id = ?", (doc_id,)).fetchone()[0]
+            if remaining == 0:
+                conn.execute("DELETE FROM operations WHERE doc_id = ?", (doc_id,))
+                conn.execute("DELETE FROM snapshots WHERE doc_id = ?", (doc_id,))
             conn.commit()
 
     def list_documents(self, owner: Optional[str] = None) -> List[dict]:
         with self._get_conn() as conn:
             if owner:
                 rows = conn.execute(
-                    "SELECT id, title, owner, created_at FROM documents WHERE owner = ? OR owner = 'Global' ORDER BY created_at DESC",
+                    "SELECT id, title, owner, created_at FROM documents WHERE owner = ? ORDER BY created_at DESC",
                     (owner,)
                 ).fetchall()
             else:
