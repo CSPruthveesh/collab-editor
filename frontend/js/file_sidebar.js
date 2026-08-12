@@ -59,7 +59,6 @@ export class FileSidebar {
             }
         });
 
-        // Feature 2: Double-Click Collapse on Resizer Edge
         this.resizer.addEventListener('dblclick', () => {
             const isCollapsed = this.sidebar.classList.contains('collapsed');
             this._setCollapsed(!isCollapsed);
@@ -73,32 +72,41 @@ export class FileSidebar {
         }
     }
 
-    // Feature 1: Responsive Header Icon Swap on Collapse State
     _setCollapsed(collapsed) {
         if (collapsed) {
             this.sidebar.classList.add('collapsed');
             this.sidebar.style.width = '60px';
             if (this.headerIcon) {
-                // Swap main icon to collapse indicator icon
                 this.headerIcon.innerHTML = `<path d="M13 5l7 7-7 7M5 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
             }
         } else {
             this.sidebar.classList.remove('collapsed');
             this.sidebar.style.width = '250px';
             if (this.headerIcon) {
-                // Swap back to main document icon
                 this.headerIcon.innerHTML = `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>`;
             }
         }
     }
 
-    // Feature 3: Profile-Specific Database Operations
-    async loadDocuments() {
+    async loadDocuments(autoSelectLatestIfActiveDeleted = false) {
         try {
             const res = await fetch(`/api/documents?owner=${encodeURIComponent(this.profileId)}`);
             if (res.ok) {
                 const docs = await res.json();
                 this.render(docs);
+
+                if (autoSelectLatestIfActiveDeleted) {
+                    if (docs.length > 0) {
+                        const latestDoc = docs[0];
+                        if (this.onSelectDocument) {
+                            this.onSelectDocument(latestDoc.id);
+                        }
+                    } else {
+                        if (this.onSelectDocument) {
+                            this.onSelectDocument('default-doc');
+                        }
+                    }
+                }
             }
         } catch (err) {
             console.error("Failed to load profile document list:", err);
@@ -133,7 +141,6 @@ export class FileSidebar {
             </div>
         `;
 
-        // Feature 4: Persistent Rename Operation
         menu.querySelector('.rename-item').addEventListener('click', async (ev) => {
             ev.stopPropagation();
             this.closeDropdown();
@@ -152,14 +159,15 @@ export class FileSidebar {
             }
         });
 
-        // Feature 4: Persistent Delete Operation
+        // Switch to latest file created after deleting
         menu.querySelector('.delete-item').addEventListener('click', async (ev) => {
             ev.stopPropagation();
             this.closeDropdown();
             if (confirm(`Are you sure you want to delete "${doc.title || doc.id}"?`)) {
                 try {
                     await fetch(`/api/documents/${doc.id}`, { method: 'DELETE' });
-                    this.loadDocuments();
+                    const isDeletingActiveDoc = (doc.id === this.activeDocId);
+                    await this.loadDocuments(isDeletingActiveDoc);
                 } catch (err) {
                     console.error("Failed to delete document:", err);
                 }
