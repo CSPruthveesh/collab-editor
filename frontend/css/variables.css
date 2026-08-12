@@ -1,0 +1,26 @@
+:root {
+  /* Color Palette - HSL Dark Mode Editor Theme */
+  --bg-primary: hsl(220, 18%, 10%);
+  --bg-secondary: hsl(220, 16%, 13%);
+  --bg-tertiary: hsl(220, 14%, 17%);
+  --bg-hover: hsl(220, 14%, 22%);
+  
+  --text-primary: hsl(220, 20%, 90%);
+  --text-secondary: hsl(220, 12%, 65%);
+  --text-muted: hsl(220, 10%, 45%);
+  
+  --accent-blue: hsl(210, 100%, 60%);
+  --accent-green: hsl(145, 65%, 48%);
+  --accent-purple: hsl(270, 70%, 60%);
+  --accent-red: hsl(355, 75%, 58%);
+  
+  --border-color: hsl(220, 12%, 20%);
+  
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  
+  /* Layout */
+  --sidebar-width: 250px;
+  --header-height: 50px;
+}
