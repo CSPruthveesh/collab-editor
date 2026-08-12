@@ -18,6 +18,11 @@ const editorContainer = document.getElementById('editor-container');
 
 docTitle.value = `Document: ${docId}`;
 
+const profileAvatar = document.getElementById('user-profile-avatar');
+const profileName = document.getElementById('user-profile-name');
+if (profileAvatar) profileAvatar.textContent = (userName || 'U')[0].toUpperCase();
+if (profileName) profileName.textContent = userName;
+
 let wasmModule = null;
 let otClient = null;
 let wsClient = null;
