@@ -4,11 +4,13 @@ export class HistoryReplay {
         this.slider = document.getElementById(sliderId);
         this.revisionLabel = document.getElementById(revisionLabelId);
         this.textPreview = document.getElementById(textPreviewId);
+        this.metaInfo = document.getElementById('history-meta-info');
         this.wasm = wasmModule;
         this.historyOps = [];
         this.docStates = [];
         this._bindEvents();
     }
+
     _bindEvents() {
         if (this.slider) {
             this.slider.addEventListener('input', () => {
@@ -17,6 +19,7 @@ export class HistoryReplay {
             });
         }
     }
+
     async loadHistory(docId) {
         try {
             const res = await fetch(`/api/documents/${docId}/history`);
@@ -29,9 +32,11 @@ export class HistoryReplay {
             console.error("Failed to load history:", err);
         }
     }
+
     precomputeStates() {
         let currentText = "";
         this.docStates = [currentText];
+
         for (const item of this.historyOps) {
             try {
                 currentText = this.wasm.apply_json(currentText, item.op_json);
@@ -40,21 +45,35 @@ export class HistoryReplay {
                 console.error("Error applying history op:", err);
             }
         }
+
         if (this.slider) {
             this.slider.min = 0;
-            this.slider.max = this.docStates.length - 1;
+            this.slider.max = Math.max(0, this.docStates.length - 1);
             this.slider.value = this.docStates.length - 1;
         }
+
         this.showRevision(this.docStates.length - 1);
     }
+
     showRevision(rev) {
         if (this.revisionLabel) {
             this.revisionLabel.textContent = `Revision ${rev} / ${this.docStates.length - 1}`;
         }
         if (this.textPreview && this.docStates[rev] !== undefined) {
-            this.textPreview.textContent = this.docStates[rev];
+            this.textPreview.textContent = this.docStates[rev] || "(Empty Document)";
+        }
+        if (this.metaInfo) {
+            if (rev === 0) {
+                this.metaInfo.textContent = "Initial Document Creation";
+            } else if (this.historyOps[rev - 1]) {
+                const opItem = this.historyOps[rev - 1];
+                const author = opItem.user_id || "Anonymous";
+                const time = opItem.timestamp ? new Date(opItem.timestamp * 1000).toLocaleTimeString() : "";
+                this.metaInfo.textContent = `Revision ${rev} edited by User #${author} ${time ? 'at ' + time : ''}`;
+            }
         }
     }
+
     close() {
         if (this.modal) this.modal.style.display = 'none';
     }
