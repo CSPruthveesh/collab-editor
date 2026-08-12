@@ -27,8 +27,10 @@ let presenceTracker = null;
 let fileSidebar = null;
 
 import { HistoryReplay } from './history_replay.js';
+import { UndoManager } from './undo_manager.js';
 
 let historyReplay = null;
+let undoManager = null;
 
 async function init() {
     statusText.textContent = "Loading Wasm OT Engine...";
@@ -43,7 +45,14 @@ async function init() {
     cursorRenderer = new CursorRenderer('avatar-container', document.getElementById('code-editor'), editorContainer);
 
     codeEditor = new CodeEditor('code-editor', 'line-numbers', (opJson) => {
+        undoManager.pushEdit(opJson);
         otClient.onLocalEdit(opJson, (rev, op) => {
+            wsClient.sendEdit(rev, op);
+        });
+    });
+
+    undoManager = new UndoManager(codeEditor.editor, (inverseOpJson) => {
+        otClient.onLocalEdit(inverseOpJson, (rev, op) => {
             wsClient.sendEdit(rev, op);
         });
     });
