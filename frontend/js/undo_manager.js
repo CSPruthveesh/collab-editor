@@ -6,6 +6,7 @@ export class UndoManager {
         this.redoStack = [];
         this._bindEvents();
     }
+
     _bindEvents() {
         this.editor.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -17,43 +18,25 @@ export class UndoManager {
             }
         });
     }
-    pushEdit(opJson) {
-        this.undoStack.push(opJson);
-        this.redoStack = []; 
+
+    pushEdit(beforeText, afterText) {
+        this.undoStack.push({ before: beforeText, after: afterText });
+        this.redoStack = [];
     }
-    invertOpJson(opJson) {
-        try {
-            const ops = JSON.parse(opJson);
-            const inverted = [];
-            for (const op of ops) {
-                if (op.r) {
-                    inverted.push({ r: op.r });
-                } else if (op.i) {
-                    inverted.push({ d: op.i.length });
-                } else if (op.d) {
-                    inverted.push({ r: op.d });
-                }
-            }
-            return JSON.stringify(inverted);
-        } catch (err) {
-            return opJson;
-        }
-    }
+
     undo() {
         if (this.undoStack.length === 0) return;
-        const opJson = this.undoStack.pop();
-        const inverseOpJson = this.invertOpJson(opJson);
-        this.redoStack.push(opJson);
-        if (this.onPerformEdit) {
-            this.onPerformEdit(inverseOpJson);
-        }
+        const entry = this.undoStack.pop();
+        this.redoStack.push(entry);
+        this.editor.value = entry.before;
+        this.editor.dispatchEvent(new Event('input'));
     }
+
     redo() {
         if (this.redoStack.length === 0) return;
-        const opJson = this.redoStack.pop();
-        this.undoStack.push(opJson);
-        if (this.onPerformEdit) {
-            this.onPerformEdit(opJson);
-        }
+        const entry = this.redoStack.pop();
+        this.undoStack.push(entry);
+        this.editor.value = entry.after;
+        this.editor.dispatchEvent(new Event('input'));
     }
 }

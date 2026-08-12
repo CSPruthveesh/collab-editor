@@ -27,31 +27,37 @@ let presenceTracker = null;
 let fileSidebar = null;
 let historyReplay = null;
 let undoManager = null;
+let lastSnapshot = "";
+
 async function init() {
     statusText.textContent = "Loading Wasm OT Engine...";
     wasmModule = await OTEngine();
     statusText.textContent = "Connecting...";
+
     otClient = new OTClient(wasmModule);
     wsClient = new WSClient(docId, userName);
     cursorRenderer = new CursorRenderer('avatar-container', document.getElementById('code-editor'), editorContainer);
-    undoManager = new UndoManager(document.getElementById('code-editor'), (inverseOpJson) => {
-        otClient.onLocalEdit(inverseOpJson, (rev, op) => {
-            wsClient.sendEdit(rev, op);
-        });
-    });
+
+    undoManager = new UndoManager(document.getElementById('code-editor'), null);
+
     codeEditor = new CodeEditor('code-editor', 'line-numbers', (opJson) => {
-        if (undoManager) undoManager.pushEdit(opJson);
+        const currentText = codeEditor.getValue();
+        undoManager.pushEdit(lastSnapshot, currentText);
+        lastSnapshot = currentText;
         otClient.onLocalEdit(opJson, (rev, op) => {
             wsClient.sendEdit(rev, op);
         });
     });
+
     presenceTracker = new PresenceTracker(codeEditor.editor, (p) => {
         wsClient.sendPresence(p.cursor_pos, p.selection_start, p.selection_end);
     });
+
     fileSidebar = new FileSidebar('doc-list', (newDocId) => {
         window.location.href = `?doc=${encodeURIComponent(newDocId)}&name=${encodeURIComponent(userName)}`;
     });
     fileSidebar.loadDocuments();
+
     historyReplay = new HistoryReplay('history-modal', 'history-slider', 'history-rev-label', 'history-text-preview', wasmModule);
     const historyBtn = document.getElementById('history-btn');
     const closeHistoryBtn = document.getElementById('close-history-btn');
@@ -61,6 +67,7 @@ async function init() {
     if (closeHistoryBtn) {
         closeHistoryBtn.addEventListener('click', () => historyReplay.close());
     }
+
     wsClient.on('status', (status) => {
         if (status === 'connected') {
             statusDot.style.backgroundColor = 'var(--accent-green)';
@@ -70,30 +77,40 @@ async function init() {
             statusText.textContent = 'Reconnecting...';
         }
     });
+
     wsClient.on('doc_sync', (data) => {
         codeEditor.setValue(data.content);
+        lastSnapshot = data.content;
         otClient.revision = data.revision;
         cursorRenderer.setUsers(data.users || []);
     });
+
     wsClient.on('ack', (data) => {
         otClient.onServerAck(data.revision, (rev, opJson) => {
             wsClient.sendEdit(rev, opJson);
         });
     });
+
     wsClient.on('remote_edit', (data) => {
         otClient.onRemoteOp(data.op_json, data.revision, (opToApply) => {
             codeEditor.applyRemoteOp(wasmModule, opToApply);
+            lastSnapshot = codeEditor.getValue();
         });
     });
+
     wsClient.on('presence', (data) => {
         cursorRenderer.updatePresence(data.presence);
     });
+
     wsClient.on('user_join', (data) => {
         cursorRenderer.addUser(data.presence);
     });
+
     wsClient.on('user_leave', (data) => {
         cursorRenderer.removeUser(data.user_id);
     });
+
     wsClient.connect();
 }
+
 init();

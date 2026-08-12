@@ -1,31 +1,9 @@
 import { diffToOperation } from './ot_client.js';
-export function highlightCode(code) {
-    if (!code) return "";
-    let html = code
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-
-    const keywords = /\b(const|let|var|function|return|if|else|for|while|class|import|export|from|def|async|await|include|struct|void|int|bool|true|false)\b/g;
-    html = html.replace(keywords, '<span class="token-keyword">$&</span>');
-
-    const strings = /(["'])(?:(?=(\\?))\2[\s\S])*?\1/g;
-    html = html.replace(strings, '<span class="token-string">$&</span>');
-
-    const numbers = /\b\d+\b/g;
-    html = html.replace(numbers, '<span class="token-number">$&</span>');
-
-    const comments = /\/\/.*/g;
-    html = html.replace(comments, '<span class="token-comment">$&</span>');
-
-    return html + '\n';
-}
 
 export class CodeEditor {
     constructor(textareaId, lineNumbersId, onLocalEditCallback) {
         this.editor = document.getElementById(textareaId);
         this.lineNumbers = document.getElementById(lineNumbersId);
-        this.highlightLayer = document.getElementById('highlight-layer');
         this.onLocalEdit = onLocalEditCallback;
         this.lastKnownValue = "";
         this._bindEvents();
@@ -39,25 +17,14 @@ export class CodeEditor {
             if (opJson !== JSON.stringify([]) && this.onLocalEdit) {
                 this.onLocalEdit(opJson);
             }
-            this.updateDisplay();
+            this.updateLineNumbers();
         });
 
         this.editor.addEventListener('scroll', () => {
-            if (this.highlightLayer) {
-                this.highlightLayer.scrollTop = this.editor.scrollTop;
-                this.highlightLayer.scrollLeft = this.editor.scrollLeft;
-            }
             if (this.lineNumbers) {
                 this.lineNumbers.scrollTop = this.editor.scrollTop;
             }
         });
-    }
-
-    updateDisplay() {
-        this.updateLineNumbers();
-        if (this.highlightLayer) {
-            this.highlightLayer.innerHTML = highlightCode(this.editor.value);
-        }
     }
 
     updateLineNumbers() {
@@ -72,16 +39,15 @@ export class CodeEditor {
     setValue(text) {
         this.editor.value = text;
         this.lastKnownValue = text;
-        this.updateDisplay();
+        this.updateLineNumbers();
     }
 
     applyRemoteOp(wasmModule, remoteOpJson) {
         const prevPos = this.editor.selectionStart;
-        const prevValue = this.editor.value;
-        const newText = wasmModule.apply_json(prevValue, remoteOpJson);
+        const newText = wasmModule.apply_json(this.editor.value, remoteOpJson);
         this.editor.value = newText;
         this.lastKnownValue = newText;
         this.editor.setSelectionRange(prevPos, prevPos);
-        this.updateDisplay();
+        this.updateLineNumbers();
     }
 }

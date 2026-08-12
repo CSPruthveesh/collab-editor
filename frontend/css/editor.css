@@ -5,6 +5,7 @@
   background-color: var(--bg-primary);
   overflow: hidden;
 }
+
 .line-numbers {
   width: 45px;
   padding: 16px 8px;
@@ -16,59 +17,51 @@
   user-select: none;
   background-color: var(--bg-primary);
   border-right: 1px solid var(--border-color);
+  overflow-y: hidden;
 }
-.editor-wrapper {
-  position: relative;
+
+#code-editor {
   flex: 1;
-  height: 100%;
-  overflow: hidden;
-}
-.editor-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   padding: 16px;
   font-family: var(--font-mono);
   font-size: 0.95rem;
   line-height: 1.5;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow: auto;
+  color: var(--text-primary);
+  background: transparent;
   border: none;
   outline: none;
-  background: transparent;
-  margin: 0;
-  tab-size: 4;
-}
-#highlight-layer {
-  pointer-events: none;
-  color: var(--text-primary);
-  z-index: 1;
-}
-#code-editor {
-  color: transparent;
-  caret-color: var(--accent-blue);
-  z-index: 2;
   resize: none;
+  tab-size: 4;
+  white-space: pre;
+  overflow-y: auto;
 }
+
+#code-editor:focus {
+  box-shadow: inset 0 0 0 1px var(--accent-blue);
+}
+
 .remote-caret {
   position: absolute;
   width: 2px;
   pointer-events: none;
-  transition: all 0.1s ease-out;
-  z-index: 10;
+  transition: top 0.1s ease-out, left 0.1s ease-out;
+  z-index: 20;
 }
+
 .remote-caret-label {
   position: absolute;
-  top: -18px;
-  left: 0;
-  font-size: 0.7rem;
-  padding: 1px 4px;
-  border-radius: 3px;
-  color: white;
+  top: -20px;
+  left: -2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ffffff;
   font-family: var(--font-sans);
   white-space: nowrap;
   pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  opacity: 0.95;
 }
