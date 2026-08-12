@@ -26,6 +26,10 @@ let codeEditor = null;
 let presenceTracker = null;
 let fileSidebar = null;
 
+import { HistoryReplay } from './history_replay.js';
+
+let historyReplay = null;
+
 async function init() {
     statusText.textContent = "Loading Wasm OT Engine...";
     
@@ -52,6 +56,17 @@ async function init() {
         window.location.href = `?doc=${encodeURIComponent(newDocId)}&name=${encodeURIComponent(userName)}`;
     });
     fileSidebar.loadDocuments();
+
+    historyReplay = new HistoryReplay('history-modal', 'history-slider', 'history-rev-label', 'history-text-preview', wasmModule);
+    
+    const historyBtn = document.getElementById('history-btn');
+    const closeHistoryBtn = document.getElementById('close-history-btn');
+    if (historyBtn) {
+        historyBtn.addEventListener('click', () => historyReplay.loadHistory(docId));
+    }
+    if (closeHistoryBtn) {
+        closeHistoryBtn.addEventListener('click', () => historyReplay.close());
+    }
 
     // 3. Register WebSocket Event Handlers
     wsClient.on('status', (status) => {
