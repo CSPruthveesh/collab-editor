@@ -6,6 +6,7 @@ export class WSClient {
         this.reconnectAttempts = 0;
         this.maxReconnectDelay = 30000;
         this.callbacks = {};
+        this.isReconnecting = false;
     }
 
     on(event, callback) {
@@ -22,6 +23,10 @@ export class WSClient {
         this.ws.onopen = () => {
             this.reconnectAttempts = 0;
             if (this.callbacks['status']) this.callbacks['status']('connected');
+            if (this.isReconnecting && this.callbacks['reconnected']) {
+                this.callbacks['reconnected']();
+            }
+            this.isReconnecting = false;
         };
 
         this.ws.onmessage = (event) => {
@@ -37,6 +42,7 @@ export class WSClient {
         };
 
         this.ws.onclose = () => {
+            this.isReconnecting = true;
             if (this.callbacks['status']) this.callbacks['status']('reconnecting');
             this.scheduleReconnect();
         };
